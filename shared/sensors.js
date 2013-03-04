@@ -43,7 +43,8 @@ var SensorFactory = function () {
         return that;
     };
     
-    var sindex = 0
+    var sindex = 0;
+
     factory.createDistanceSensor = function (spec, my) {
         var my = my || {},
             that = factory.createSensor(spec, my),

@@ -26,32 +26,19 @@
                 GLib.createPoint(-scale*2/3, -scale/2 + 5),
             ]),
             sensors: (function () {
-                var i, list = [];
+                var i, list = [], N = 20;
                 
-                for (i = 0; i < 3; i++) {
+                for (i = 0; i < N; i++) {
                     list.push(SensorFactory.createDistanceSensor({
                         world: world,
-                        offset: {x: scale/2, y: scale/2, heading: i},
+                        offset: {x: scale*3/4, y: 0, 
+                                 heading: i*Math.PI/(N-1) - Math.PI/2},
                         range: 400
                     }));
                 }
-                
+
                 return list;
-            })() /*
-            (function () {
-                var i, list = [];
-                
-                for (i = 0; i < 10; i++) {
-                    list.push(SensorFactory.createDistanceSensor({
-                        world: world,
-                        offset: {x: scale/2, y: scale/2, heading: i*Math.PI/20},
-                        range: 400
-                    }));
-                }
-                
-                return list;
-            })()
-            */
+            })() 
         }),
         
 

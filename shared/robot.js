@@ -90,6 +90,7 @@ var RobotFactory = function () {
         };
             
         my.sensors = (spec && spec.sensors) || [];
+        that.sensors = my.sensors;
         my.world = (spec && spec.world) || null;
 
         my.x = (spec && spec.x) || 0;
@@ -363,8 +364,9 @@ var RobotFactory = function () {
         that.step = function (dt) {
             var new_x, new_y, new_heading, R, wd,
                 x = my.x, y = my.y, heading = my.heading, width = my.width,
-                leftVel = my.leftWheelVel, rightVel = my.rightWheelVel;
-
+                leftVel = my.leftWheelVel, rightVel = my.rightWheelVel,
+                i;
+            
             if (abs(leftVel - rightVel) <= SMALL_ENOUGH) {
                 new_x = x + dt*leftVel*cos(heading);
                 new_y = y + dt*leftVel*sin(heading);
@@ -384,6 +386,7 @@ var RobotFactory = function () {
             if (my.world && !my.isPosePossible(new_x, new_y, new_heading)) {
                 return;
             }
+          
             
             for (i = 0; i < my.sensors.length; i++) {
                 my.sensors[i].update();
