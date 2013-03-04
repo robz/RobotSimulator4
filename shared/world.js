@@ -37,7 +37,7 @@ var createWorld = function () {
             }
             
             return true;
-        }
+        };
         
         that.isPolyAllowed = function (poly) {
             var i;
@@ -64,13 +64,13 @@ var createWorld = function () {
             return true;
         };
         
-        that.closestIntersectionDistance = function (ray) {
-            var dist, minDist;
-        
+        that.getClosestIntersectionDistance = function (lineSeg) {
+            var dist, minDist = lineSeg.length;
+            
             for (i = 0; i < that.obstacles.length; i++) {
-                dist = that.obstacles[i].closestRayIntersectionDistance(ray);
+                dist = that.obstacles[i].closestIntersectionDistance(lineSeg);
                 
-                if (dist < minDist) {
+                if (dist && dist < minDist) {
                     minDist = dist;
                 }
             }

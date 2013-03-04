@@ -31,8 +31,9 @@ var RobotFactory = function () {
      * maxVel (.2)
      * logActions (false)
      * color ("black")
-     * world (undefined)
+     * world (null)
      * frame (basic square)
+     * sensors ([])
     */
     {
         var my = my || {},
@@ -41,44 +42,7 @@ var RobotFactory = function () {
         // private members
 
         var getTime,
-            lastTimeUpdated,
-            
-            drawWheel = function (context, wheelDistanceTravelled) {
-                var i, wheelCorners = my.wheel.points;
-
-                context.save();
-
-                context.lineWidth = 1;
-                context.strokeStyle = "black";
-                context.fillStyle = "lightGray";
-                
-                my.wheel.draw(context, true);
-
-                // draw spokes if wheel distance was specified
-
-                if (typeof wheelDistanceTravelled !== 'undefined') {
-                    var numSpokes = 6,
-                        spokeLength = my.wheelLength/2,
-                        dtheta = wheelDistanceTravelled/spokeLength,
-                        theta, dx;
-
-                    for (i = 0; i < numSpokes; i++) {
-                        theta = GLib.boundAngle(i*PI*2/numSpokes - dtheta);
-                        dx = spokeLength*cos(theta);
-
-                        if (theta < PI) {
-                            context.beginPath();
-                            context.moveTo(wheelCorners[0].x + my.wheelLength/2 + dx,
-                                           wheelCorners[0].y);
-                            context.lineTo(wheelCorners[0].x + my.wheelLength/2 + dx,
-                                           wheelCorners[0].y + my.wheelWidth);
-                            context.stroke();
-                        }
-                    }
-                }
-
-                context.restore();
-            };
+            lastTimeUpdated;
 
         if (spec && spec.getTime) {
             getTime = spec.getTime;
@@ -90,7 +54,43 @@ var RobotFactory = function () {
 
         // protected members
 
-        my.world = spec.world;
+        my.drawWheel = function (context, wheelDistanceTravelled) {
+            var i, wheelCorners = my.wheel.points;
+
+            context.save();
+
+            context.lineWidth = 1;
+            context.strokeStyle = "black";
+            context.fillStyle = "lightGray";
+            
+            my.wheel.draw(context, true);
+
+            // draw spokes if wheel distance was specified
+            var numSpokes = 6,
+                spokeLength = my.wheelLength/2,
+                dtheta = wheelDistanceTravelled/spokeLength,
+                theta, 
+                dx;
+
+            for (i = 0; i < numSpokes; i++) {
+                theta = GLib.boundAngle(i*PI*2/numSpokes - dtheta);
+                dx = spokeLength*cos(theta);
+
+                if (theta < PI) {
+                    context.beginPath();
+                    context.moveTo(wheelCorners[0].x + my.wheelLength/2 + dx,
+                                   wheelCorners[0].y);
+                    context.lineTo(wheelCorners[0].x + my.wheelLength/2 + dx,
+                                   wheelCorners[0].y + my.wheelWidth);
+                    context.stroke();
+                }
+            }
+
+            context.restore();
+        };
+            
+        my.sensors = (spec && spec.sensors) || [];
+        my.world = (spec && spec.world) || null;
 
         my.x = (spec && spec.x) || 0;
         my.y = (spec && spec.y) || 0;
@@ -122,7 +122,7 @@ var RobotFactory = function () {
         my.logActions = (spec && spec.logActions) || false;
         my.color = (spec && spec.color) || "black";
 
-        if (spec.frame) {
+        if (spec && spec.frame) {
             my.frame = spec.frame;  
         } else {
             my.frame = GLib.createPolygon([
@@ -140,68 +140,23 @@ var RobotFactory = function () {
             GLib.createPoint(-my.wheelLength/2, my.wheelWidth/2)
         ]);
         
-        my.isPosePossible = function (x, y, heading, wheelDirections) {
-            var pointsCopy, i, px, py, frameCopy,
-                wheelCopy, dx, dy, j, px_temp, pyt_temp, wheelPoly,
-                casterCopy, casterCircle;
-
-            // create frame polygon by
-            // 1. rotating corners by heading
-            // 2. then translating by x & y
-
-            pointsCopy = new Array(my.frame.points.length);
-
-            for (i = 0; i < my.frame.points.length; i++) {
-                px = my.frame.points[i].x;
-                py = my.frame.points[i].y;
-                pointsCopy[i] = GLib.createPoint(px, py);
-                pointsCopy[i].x = px*cos(heading) - py*sin(heading);
-                pointsCopy[i].y = px*sin(heading) + py*cos(heading);
-                pointsCopy[i].x += x;
-                pointsCopy[i].y += y;
-            }
-
-            frameCopy = GLib.createPolygon(pointsCopy);
-
-            if (!my.world.isPolyAllowed(frameCopy)) {
-                return false;
-            }
-
-            // create wheel polygons by
-            //  0. rotate by wheel direction if necessary
-            //  1. translating to corners
-            //  2. rotating by heading
-            //  3. then translating by x & y
-
-            for (i = 0; i < my.wheelInfo.numWheels; i++) {
-                wheelCopy = new Array(my.wheel.points.length);
-                dx = my.wheelInfo.positions[i].x;
-                dy = my.wheelInfo.positions[i].y;
-
-                for (j = 0; j < my.wheel.points.length; j++) {
-                    px_temp = my.wheel.points[j].x;
-                    py_temp = my.wheel.points[j].y;
-
-                    px = px_temp*cos(wheelDirections[i]) - py_temp*sin(wheelDirections[i]);
-                    py = px_temp*sin(wheelDirections[i]) + py_temp*cos(wheelDirections[i]);
-                    px += dx;
-                    py += dy;
-
-                    wheelCopy[j] = GLib.createPoint(px, py);
-                    wheelCopy[j].x = px*cos(heading) - py*sin(heading);
-                    wheelCopy[j].y = px*sin(heading) + py*cos(heading);
-                    wheelCopy[j].x += x;
-                    wheelCopy[j].y += y;
-                }
-
-                wheelPoly = GLib.createPolygon(wheelCopy);
-
-                if (!my.world.isPolyAllowed(wheelPoly)) {
-                    return false;
-                }
-            }
-
-            return true;
+        my.isPosePossible = function (x, y, heading) {
+            var res,    
+                tx = my.root.offset.x,
+                ty = my.root.offset.y,
+                theading = my.root.offset.heading;
+                
+            my.root.offset.x = x;
+            my.root.offset.y = y;
+            my.root.offset.heading = heading;
+            
+            res = FTLib.isAllowed(my.root, my.world);
+                
+            my.root.offset.x = tx;
+            my.root.offset.y = ty;
+            my.root.offset.heading = theading;
+            
+            return res;
         };
 
         // public members
@@ -212,29 +167,6 @@ var RobotFactory = function () {
 
         that.step = function (dt) {
             throw new Error("abstract method 'step' not implemented");
-        };
-
-        that.draw = function (context) {
-            var i, corners = my.corners;
-
-            context.save();
-            
-            for (i = 0; i < my.wheelInfo.numWheels; i++) {
-                context.save();
-                context.translate(my.wheelInfo.positions[i].x,
-                                  my.wheelInfo.positions[i].y);
-                context.rotate(my.wheelInfo.directions[i]);
-                drawWheel(context, my.wheelInfo.distanceTravelled[i]);
-                context.restore();
-            }
-            
-            context.fillStyle = "lightGray";
-            context.lineWidth = 3;
-            context.strokeStyle = my.color;
-            
-            my.frame.draw(context, true);
-
-            context.restore();
         };
 
         that.keyControl = function (key) {
@@ -315,23 +247,74 @@ var RobotFactory = function () {
 
         // private members
 
-        var super_isPosePossible = my.isPosePossible,
-            super_draw = that.draw,
-            caster = {x: my.length, y:0};
+        var caster = {x: my.length, y:0},
+            casterShape;
 
         caster.radius = (spec && typeof spec.casterRadius !== 'undefined')
             ? spec.casterRadius : .1;
         caster.radius *= my.scale;
+        
+        casterShape = GLib.createCircle(
+            GLib.createPoint(0, 0), 
+            caster.radius
+        );
 
         // protected members
 
         my.wheelInfo = {
             numWheels: 2,
             distanceTravelled: [0, 0],
-            directions: [0, 0],
-            positions: [GLib.createPoint(0, -my.width/2), 
-                        GLib.createPoint(0, my.width/2)]
+            poses: [{x: 0, y: -my.width/2, heading: 0}, 
+                    {x: 0, y: my.width/2, heading: 0}]
         };
+        
+        my.root = FTLib.createNode(
+            my.frame, 
+            function (context) {
+                context.save();
+                
+                context.lineWidth = 3;
+                context.fillStyle = "lightGray";
+                context.strokeStyle = my.color;
+                my.frame.draw(context, true);
+                
+                context.restore();
+            }, 
+            my, 
+            [
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[0]
+                        );
+                    }, 
+                    my.wheelInfo.poses[0]
+                ),
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[1]
+                        );
+                    }, 
+                    my.wheelInfo.poses[1]
+                ),
+                FTLib.createNode(
+                    casterShape, 
+                    casterShape.draw, 
+                    caster
+                ) 
+            ]
+        );
+        
+        FTLib.setTransforms(my.root);
+        
+        for (i = 0; i < my.sensors.length; i++) {
+            my.root.children.push(my.sensors[i].node);
+        }
 
         my.leftWheelVel = (spec && spec.leftWheelVel) || 0;
         my.rightWheelVel = (spec && spec.rightWheelVel) || 0;
@@ -339,44 +322,22 @@ var RobotFactory = function () {
         my.keyFunctions = {};
         my.keyFunctions[KEY_W] = function () {
             that.setWheelVelocities(my.leftWheelVel + my.velInc,
-                               my.rightWheelVel + my.velInc);
+                                    my.rightWheelVel + my.velInc);
         };
         my.keyFunctions[KEY_A] = function () {
             that.setWheelVelocities(my.leftWheelVel + my.velInc,
-                               my.rightWheelVel - my.velInc);
+                                    my.rightWheelVel - my.velInc);
         };
         my.keyFunctions[KEY_S] = function () {
             that.setWheelVelocities(my.leftWheelVel - my.velInc,
-                               my.rightWheelVel - my.velInc);
+                                    my.rightWheelVel - my.velInc);
         };
         my.keyFunctions[KEY_D] = function () {
             that.setWheelVelocities(my.leftWheelVel - my.velInc,
-                               my.rightWheelVel + my.velInc);
+                                    my.rightWheelVel + my.velInc);
         };
         my.keyFunctions[KEY_SPACE] = function () {
             that.setWheelVelocities(0, 0);
-        };
-        
-        my.isPosePossible = function (x, y, heading, wheelDirections) {
-            var px, py, casterCopy, casterCircle;
-            
-            if (!super_isPosePossible(x, y, heading, wheelDirections)) {
-                return false;
-            }
-        
-            px = caster.x;
-            py = caster.y;
-            casterCopy = GLib.createPoint(px, py);
-            casterCopy.x = x + px*cos(heading) - py*sin(heading);
-            casterCopy.y = y + px*sin(heading) + py*cos(heading);
-
-            casterCircle = GLib.createCircle(casterCopy, caster.radius);
-
-            if (!my.world.isCircleAllowed(casterCircle)) {
-                return false;
-            }
-            
-            return true;
         };
 
         // public members
@@ -420,9 +381,12 @@ var RobotFactory = function () {
             my.wheelInfo.distanceTravelled[0] += dt*rightVel;
             my.wheelInfo.distanceTravelled[1] += dt*leftVel;
 
-            if (my.world && !my.isPosePossible(new_x, new_y, new_heading,
-                    my.wheelInfo.directions, caster)) {
+            if (my.world && !my.isPosePossible(new_x, new_y, new_heading)) {
                 return;
+            }
+            
+            for (i = 0; i < my.sensors.length; i++) {
+                my.sensors[i].update();
             }
 
             my.x = new_x;
@@ -431,25 +395,7 @@ var RobotFactory = function () {
         };
 
         that.draw = function (context) {
-            context.save();
-
-            context.translate(my.x, my.y);
-            context.rotate(my.heading);
-
-            // draw caster
-
-            context.strokeStyle = "black";
-            context.lineWidth = 1;
-
-            context.beginPath();
-            context.arc(caster.x, caster.y, caster.radius, 0, 2*PI, false);
-            context.stroke();
-
-            // draw everything else
-            
-            super_draw(context);
-
-            context.restore();
+            FTLib.drawTree(my.root, context);
         };
 
         return that;
@@ -467,22 +413,74 @@ var RobotFactory = function () {
     {
         var my = my || {},
             that = factory.createRobot(spec, my);
-
-        // private members
-        
-        var super_draw = that.draw;
             
         // protected members
 
         my.wheelInfo = {
             numWheels: 4,
             distanceTravelled: [0, 0, 0, 0],
-            directions: [0, 0, 0, 0],
-            positions: [GLib.createPoint(0, -my.width/2), 
-                        GLib.createPoint(my.length, -my.width/2),
-                        GLib.createPoint(my.length, my.width/2), 
-                        GLib.createPoint(0, my.width/2)]
+            poses: [{x: 0, y: -my.width/2, heading: 0}, 
+                    {x: my.length, y: -my.width/2, heading: 0},
+                    {x: my.length, y: my.width/2, heading: 0}, 
+                    {x: 0, y: my.width/2, heading: 0}]
         };
+        
+        my.root = FTLib.createNode(
+            my.frame, 
+            function (context) {
+                context.save();
+                
+                context.lineWidth = 3;
+                context.fillStyle = "lightGray";
+                context.strokeStyle = my.color;
+                my.frame.draw(context, true);
+                
+                context.restore();
+            }, 
+            my, 
+            [
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[0]
+                        );
+                    }, 
+                    my.wheelInfo.poses[0]
+                ),
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[1]
+                        );
+                    }, 
+                    my.wheelInfo.poses[1]
+                ),
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[2]
+                        );
+                    }, 
+                    my.wheelInfo.poses[2]
+                ),
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[3]
+                        );
+                    }, 
+                    my.wheelInfo.poses[3]
+                ), 
+            ]
+        );
         
         my.steerInc = (spec && typeof spec.steerInc !== 'undefined')
             ? spec.steerInc : PI/20;
@@ -533,7 +531,7 @@ var RobotFactory = function () {
             }
 
             for (i = 1; i < 3; i++) {
-                my.wheelInfo.directions[i] = my.steeringAngle;
+                my.wheelInfo.poses[i].heading = my.steeringAngle;
             }
         };
 
@@ -583,14 +581,7 @@ var RobotFactory = function () {
         };
 
         that.draw = function (context) {
-            context.save();
-
-            context.translate(my.x, my.y);
-            context.rotate(my.heading);
-
-            super_draw(context);
-
-            context.restore();
+            FTLib.drawTree(my.root, context);
         };
 
         return that;
@@ -608,22 +599,75 @@ var RobotFactory = function () {
     {
         var my = my || {},
             that = factory.createRobot(spec, my);
-
-        // private members
-        
-        var super_draw = that.draw;
         
         // protected members
 
         my.wheelInfo = {
             numWheels: 4,
             distanceTravelled: [0, 0, 0, 0],
-            directions: [0, 0, 0, 0],
-            positions: [GLib.createPoint(0, -my.width/2), 
-                        GLib.createPoint(my.length, -my.width/2),
-                        GLib.createPoint(my.length, my.width/2), 
-                        GLib.createPoint(0, my.width/2)]
+            poses: [{x: 0, y: -my.width/2, heading: 0}, 
+                    {x: my.length, y: -my.width/2, heading: 0},
+                    {x: my.length, y: my.width/2, heading: 0}, 
+                    {x: 0, y: my.width/2, heading: 0}]
         };
+        
+        
+        my.root = FTLib.createNode(
+            my.frame, 
+            function (context) {
+                context.save();
+                
+                context.lineWidth = 3;
+                context.fillStyle = "lightGray";
+                context.strokeStyle = my.color;
+                my.frame.draw(context, true);
+                
+                context.restore();
+            }, 
+            my, 
+            [
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[0]
+                        );
+                    }, 
+                    my.wheelInfo.poses[0]
+                ),
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[1]
+                        );
+                    }, 
+                    my.wheelInfo.poses[1]
+                ),
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[2]
+                        );
+                    }, 
+                    my.wheelInfo.poses[2]
+                ),
+                FTLib.createNode(
+                    my.wheel, 
+                    function (context) {
+                        my.drawWheel(
+                            context, 
+                            my.wheelInfo.distanceTravelled[3]
+                        );
+                    }, 
+                    my.wheelInfo.poses[3]
+                ), 
+            ]
+        );
 
         my.steerInc = (spec && typeof spec.steerInc !== 'undefined')
             ? spec.steerInc : PI/20;
@@ -676,7 +720,7 @@ var RobotFactory = function () {
             }
 
             for (i = 0; i < my.wheelInfo.numWheels; i++) {
-                my.wheelInfo.directions[i] = my.steeringAngle;
+                my.wheelInfo.poses[i].heading = my.steeringAngle;
             }
         };
 
@@ -706,14 +750,7 @@ var RobotFactory = function () {
         };
 
         that.draw = function (context) {
-            context.save();
-
-            context.translate(my.x, my.y);
-            context.rotate(my.heading);
-
-            super_draw(context);
-
-            context.restore();
+            FTLib.drawTree(my.root, context);
         };
 
         return that;

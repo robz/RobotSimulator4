@@ -24,7 +24,7 @@
                 GLib.createPoint(0, scale/2),
                 GLib.createPoint(-scale*2/3, scale/2 - 5),
                 GLib.createPoint(-scale*2/3, -scale/2 + 5),
-            ])
+            ]),
         }),
 
         drawStuff = function () {
@@ -56,3 +56,16 @@
         drawStuff();
     };
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+

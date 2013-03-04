@@ -148,7 +148,7 @@ var GLib = function () {
             }
             
             // use the parameter s to determine if the point lies on lineSeg
-            if (s < 0 || s > lineSeg.length || t < 0) {
+            if (s < 0 || s > lineSeg.length || t < 0 || t > that.length) {
                 return false;
             }
             
@@ -159,6 +159,30 @@ var GLib = function () {
             
             out_point.x = lineSeg.p0.x + s*cos(lineSeg.theta);
             out_point.y = lineSeg.p0.y + s*sin(lineSeg.theta);
+        };
+        
+        that.lineIntersection = function (line, out_point) {
+            var s = lib.getParameterOfIntersection(
+                line.point.x, line.point.y, line.theta,
+                that.point.x, that.point.y, that.theta
+            );
+            
+            if (false === s) {
+                return false;
+            }
+            
+            // use the parameter s to determine if the point lies on the ray
+            if (s < 0 || s > that.length) {
+                return false;
+            }
+            
+            if (!out_point) {
+                return lib.createPoint(that.point.x + s*cos(that.theta), 
+                                       that.point.y + s*sin(that.theta));
+            }
+            
+            out_point.x = that.point.x + s*cos(that.theta);
+            out_point.y = that.point.y + s*sin(thatthat.theta);
         };
     
         return that;
@@ -219,6 +243,7 @@ var GLib = function () {
     lib.createCircle = function (center, radius) {
         var that = {};
 
+        that.type = "circle";
         that.center = center;
         that.radius = radius;
         
@@ -226,7 +251,7 @@ var GLib = function () {
             return lib.euclidDist(that.center, point) < that.radius;
         };
         
-        that.closestRayIntersectionDistance = function (ray) {
+        that.closestIntersectionDistance = function (lineSeg) {
             var line = lib.createLine(that.center, lineSeg.theta + PI/2), 
                 intersection;
             
@@ -245,8 +270,8 @@ var GLib = function () {
             
             intersection = line.lineSegIntersection(lineSeg);
 
-            if (intersection) {
-                return that.containsPoint(intersection);
+            if (intersection && that.containsPoint(intersection)) {
+                return GLib.euclidDist(intersection, lineSeg.p0);
             }
 
             return false;
@@ -316,20 +341,21 @@ var GLib = function () {
             lineSegs = new Array(len),
             i;
         
+        that.type = "polygon";
         that.points = points;
         
         for (i = 0; i < len; i++) {
             lineSegs[i] = lib.createLineSeg(points[i], points[(i+1)%len]);
         }
         
-        that.closestRayIntersectionDistance = function (ray) {
-            var i, p, dist, minDist = ray.length;
+        that.closestIntersectionDistance = function (lineSeg) {
+            var i, p, dist, minDist = lineSeg.length;
         
             for (i = 0; i < len; i++) {
-                p = ray.lineSegIntersection(lineSegs[i]);
+                p = lineSeg.lineSegIntersection(lineSegs[i]);
                 
                 if (p) {
-                    dist = lib.euclidDist(p, ray.point);
+                    dist = lib.euclidDist(p, lineSeg.p0);
                     if (dist < minDist) {
                         minDist = dist;
                     }
