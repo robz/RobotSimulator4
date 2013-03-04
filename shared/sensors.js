@@ -48,6 +48,7 @@ var SensorFactory = function () {
     factory.createDistanceSensor = function (spec, my) {
         var my = my || {},
             that = factory.createSensor(spec, my),
+
             radius = (typeof spec.radius !== 'undefined') ? spec.radius : 5,
             length = (typeof spec.length !== 'undefined') ? spec.length : 10,
             range = (typeof spec.range !== 'undefined') ? spec.range : 300,
@@ -112,13 +113,56 @@ var SensorFactory = function () {
         return that;
     };
     
-    factory.createLIDAR = function () {
-        var that = {};
-        return that;
-    };
+    factory.createGPS = function (spec, my) {
+        var my = my || {}
+            that = factory.createSensor(spec, my),
+            
+            radius = (typeof spec.radius !== 'undefined') ? spec.radius : 6,
+
+            latestRead = null;
+
+        that.draw = function (context) {
+            context.save();
+
+            context.lineWidth = 2;
+            context.strokeStyle = "black";
+
+            context.beginPath();
+            context.arc(0, 0, radius, 0, 2*Math.PI, false);
+            context.stroke();
+
+            context.beginPath();
+            context.moveTo(radius, 0);
+            context.lineTo(-radius, 0);
+            context.stroke();
     
-    factory.createGPS = function () {
-        var that = {};
+            context.beginPath();
+            context.moveTo(0, radius);
+            context.lineTo(0, -radius);
+            context.stroke();
+
+            if (latestRead) {
+
+            }
+
+            context.restore();
+        };
+
+        that.update = function () {
+            var pose = my.getPose();
+
+            if (null === latestRead) {
+                latestRead = GLib.createPoint(0,0);
+            }
+
+            latestRead.x = pose.x;
+            latestRead.y = pose.y;
+        };
+
+        that.read = function () {
+            return latestRead;
+        };
+
         return that;
     };
     

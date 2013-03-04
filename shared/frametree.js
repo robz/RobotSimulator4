@@ -161,12 +161,14 @@ FTLib = (function () {
         if (typeof node.offset.heading !== 'undefined') {
             context.rotate(node.offset.heading);
         }
+
+        node.draw(context);
         
         for (i = 0; i < node.children.length; i++) {
             lib.drawTree(node.children[i], context);
         }
         
-        node.draw(context);
+        // node.draw(context);
         
         context.restore();
     };

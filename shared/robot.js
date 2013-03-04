@@ -90,7 +90,6 @@ var RobotFactory = function () {
         };
             
         my.sensors = (spec && spec.sensors) || [];
-        that.sensors = my.sensors;
         my.world = (spec && spec.world) || null;
 
         my.x = (spec && spec.x) || 0;

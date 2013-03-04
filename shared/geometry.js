@@ -422,6 +422,17 @@ var GLib = function () {
     
         return that;
     };
+
+    lib.createBoxPolygon = function (x, y, width, height) {
+        var points = new Array(4);
+
+        points[0] = lib.createPoint(x, y);
+        points[1] = lib.createPoint(x + width, y);
+        points[2] = lib.createPoint(x + width, y + height);
+        points[3] = lib.createPoint(x, y + height);
+
+        return lib.createPolygon(points);
+    };
     
     return lib;
 }();
