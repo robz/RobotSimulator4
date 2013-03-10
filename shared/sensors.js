@@ -26,7 +26,7 @@ var SensorFactory = function () {
             
         that.node = FTLib.createNode(
             null, 
-            function (context) { that.draw(context); }, // ya thas right go change ur pants
+            function (context) { that.draw(context); }, // inor8?!
             my.offset
         );
         
@@ -42,8 +42,6 @@ var SensorFactory = function () {
         var that = {};
         return that;
     };
-    
-    var sindex = 0;
 
     factory.createDistanceSensor = function (spec, my) {
         var my = my || {},
@@ -55,7 +53,7 @@ var SensorFactory = function () {
             
             latestRead = null;
             
-        that.myindex = sindex++;
+        that.range = range;
         
         that.draw = function (context) {
             context.save();
@@ -114,7 +112,7 @@ var SensorFactory = function () {
     };
     
     factory.createGPS = function (spec, my) {
-        var my = my || {}
+        var my = my || {},
             that = factory.createSensor(spec, my),
             
             radius = (typeof spec.radius !== 'undefined') ? spec.radius : 6,
@@ -166,18 +164,64 @@ var SensorFactory = function () {
         return that;
     };
     
-    factory.createCompass = function () {
+    factory.createCompass = function (spec, my) {
+        var my = my || {},
+            that = factory.createSensor(spec, my),
+            
+            radius = (typeof spec.radius !== 'undefined') ? spec.radius : 6,
+
+            latestRead = null;
+
+        that.draw = function (context) {
+            context.save();
+
+            context.lineWidth = 2;
+            context.strokeStyle = "black";
+
+            context.beginPath();
+            context.arc(0, 0, radius, 0, 2*Math.PI, false);
+            context.stroke();
+
+            context.beginPath();
+            context.moveTo(0, 0);
+            context.lineTo(radius, 0);
+            context.stroke();
+
+            if (latestRead) {
+
+            }
+
+            context.restore();
+        };
+
+        that.update = function () {
+            var pose = my.getPose();
+
+            latestRead = pose.heading;
+        };
+
+        that.read = function () {
+            return latestRead;
+        };
+
+        return that;
+    };
+    
+    factory.createEncoders = function () {
         var that = {};
         return that;
     };
     
-    factory.createPushSensor = function () {
-        var that = {};
-        return that;
-    }
-    
-    factory.createEncoders = function () {
-        var that = {};
+    factory.createMotors = function (spec) {
+        var that = {},
+            robot = spec.robot;
+            powerToVelRatio = (spec.powerToVelRatio) ? spec.powerToVelRatio : 1;
+        
+        that.setMotorPowers = function (pLeft, pRight) {
+            robot.setWheelVelocities(pLeft/powerToVelRatio, 
+                                     pRight/powerToVelRatio);
+        };
+        
         return that;
     };
     

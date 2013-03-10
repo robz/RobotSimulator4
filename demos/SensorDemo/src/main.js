@@ -7,11 +7,11 @@
         world = createWorld({
             bounds: [0, 0, canvas.width, canvas.height]
         }),
-        
+
         scale = 60,
 
         distanceSensors = (function () {
-            var i, list = [], N = 50;
+            var i, list = [], N = 20;
             
             for (i = 0; i < N; i++) {
                 list.push(SensorFactory.createDistanceSensor({
@@ -30,12 +30,12 @@
 
         gps = SensorFactory.createGPS({
             world: world,
-            offset: {x: 0, y: 0, heading: 0}
+            offset: {x: 0, y: 7, heading: 0}
         }),
 
         compass = SensorFactory.createCompass({
             world: world,
-            offset: {x: 0, y: 20, heading: 0}
+            offset: {x: 0, y: -7, heading: 0}
         }),
  
         robot = RobotFactory.createTankRobot({
@@ -55,20 +55,18 @@
                 GLib.createPoint(-scale*2/3, -scale/2 + 5),
             ]),
             
-            sensors: distanceSensors.concat([gps])
+            sensors: distanceSensors.concat([gps, compass])
         }),
 
         drawStuff = function () {
             context.putImageData(buffer, 0, 0);
-            
-            world.draw(context);  
+
+            //world.draw(context);
             robot.update();
-            robot.draw(context);  
-          
+            robot.draw(context);
+
             setTimeout(drawStuff, 1000/ANIMATION_FPS);
         };
-    
-    world.addObstacle(GLib.createBoxPolygon(450, 200, 100, 100));
 
     world.addObstacle(GLib.createBoxPolygon(0, 0, canvas.width, 5));
     world.addObstacle(GLib.createBoxPolygon(0, 0, 5, canvas.height));
@@ -78,11 +76,26 @@
     world.addObstacle(GLib.createBoxPolygon(
         0, canvas.height - 5, canvas.width, 5
     ));
- 
-    world.addObstacle(GLib.createCircle(
-        GLib.createPoint(220, 240), 
-        20
-    ));
+    
+    // generate barrels
+    (function () {
+        var N = 15, R = 20, rw = 150+R, rh = 100+R, 
+            rx = robot.getPose().x, ry = robot.getPose().y,
+            i, x, y;
+
+        for (i = 0; i < N; i++) {
+            do {
+                x = Math.random()*canvas.width;
+                y = Math.random()*canvas.height;
+            } while (x > rx - rw/2 && x < rx + rw/2 && 
+                     y > ry - rh/2 && y < ry + rh/2);
+            
+            world.addObstacle(GLib.createCircle(
+                GLib.createPoint(x, y), 
+                R
+            ));
+        }
+    })();
     
     world.draw(context);  
     buffer = context.getImageData(0, 0, canvas.width, canvas.height);

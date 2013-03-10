@@ -240,6 +240,7 @@ var RobotFactory = function () {
      * leftWheelVel (0)
      * rightWheelVel (0)
      * casterRadius (.1*scale)
+     * ghostify (false)
     */
     {
         var my = my || {},
@@ -247,7 +248,9 @@ var RobotFactory = function () {
 
         // private members
 
-        var caster = {x: my.length, y:0},
+        var ghostify = (spec.ghostify) ? spec.ghostify : false,
+        
+            caster = {x: my.length, y:0},
             casterShape;
 
         caster.radius = (spec && typeof spec.casterRadius !== 'undefined')
@@ -269,7 +272,7 @@ var RobotFactory = function () {
         };
         
         my.root = FTLib.createNode(
-            my.frame, 
+            (ghostify) ? null : my.frame, 
             function (context) {
                 context.save();
                 
@@ -283,7 +286,7 @@ var RobotFactory = function () {
             my, 
             [
                 FTLib.createNode(
-                    my.wheel, 
+                    (ghostify) ? null : my.wheel, 
                     function (context) {
                         my.drawWheel(
                             context, 
@@ -293,7 +296,7 @@ var RobotFactory = function () {
                     my.wheelInfo.poses[0]
                 ),
                 FTLib.createNode(
-                    my.wheel, 
+                    (ghostify) ? null : my.wheel, 
                     function (context) {
                         my.drawWheel(
                             context, 
@@ -303,7 +306,7 @@ var RobotFactory = function () {
                     my.wheelInfo.poses[1]
                 ),
                 FTLib.createNode(
-                    casterShape, 
+                    (ghostify) ? null : casterShape, 
                     casterShape.draw, 
                     caster
                 ) 
@@ -342,6 +345,10 @@ var RobotFactory = function () {
 
         // public members
 
+        that.addNode = function (node) {
+            my.root.children.push(node);
+        };
+        
         that.setWheelVelocities = function (leftWheelVel, rightWheelVel) {
             if (leftWheelVel > my.maxVel) {
                 my.leftWheelVel = my.maxVel;

@@ -51,6 +51,28 @@ var GLib = function () {
         return (angle%(2*PI) + 2*PI)%(2*PI);
     };
     
+    lib.angleDif = function (a1, a2) {
+        /*
+        var d = abs(lib.boundAngle(a1) - lib.boundAngle(a2));
+        
+        if (d > PI) {
+            d = 2*PI - d;
+        }
+        
+        return d;
+        
+        */
+        a1 = lib.boundAngle(a1);
+        a2 = lib.boundAngle(a2);
+        r = lib.boundAngle(a1 - a2);
+
+        if (r > PI) {
+            r -= 2*PI;
+        }
+
+        return r
+    };
+    
     lib.getParameterOfIntersection = function (x0, y0, theta0, x1, y1, theta1) {
         // return false if the angles are parallel
         if (abs(sin(theta0 - theta1)) < SMALL_ENOUGH) {
@@ -128,76 +150,16 @@ var GLib = function () {
         return that;
     };
     
-    lib.createRay = function (point, theta, length) {
-        var that = {};
-        
-        that.point = point;
-        that.theta = lib.boundAngle(theta);
-        that.length = length;
-        
-        that.lineSegIntersection = function (lineSeg, out_point) {
-            var s = lib.getParameterOfIntersection(
-                    that.point.x, that.point.y, that.theta,
-                    lineSeg.p0.x, lineSeg.p0.y, lineSeg.theta),
-                t = lib.getParameterOfIntersection(
-                    lineSeg.p0.x, lineSeg.p0.y, lineSeg.theta,
-                    that.point.x, that.point.y, that.theta);
-            
-            if (false === s) {
-                return false;
-            }
-            
-            // use the parameter s to determine if the point lies on lineSeg
-            if (s < 0 || s > lineSeg.length || t < 0 || t > that.length) {
-                return false;
-            }
-            
-            if (!out_point) {
-                return lib.createPoint(lineSeg.p0.x + s*cos(lineSeg.theta), 
-                                       lineSeg.p0.y + s*sin(lineSeg.theta));
-            }
-            
-            out_point.x = lineSeg.p0.x + s*cos(lineSeg.theta);
-            out_point.y = lineSeg.p0.y + s*sin(lineSeg.theta);
-        };
-        
-        that.lineIntersection = function (line, out_point) {
-            var s = lib.getParameterOfIntersection(
-                line.point.x, line.point.y, line.theta,
-                that.point.x, that.point.y, that.theta
-            );
-            
-            if (false === s) {
-                return false;
-            }
-            
-            // use the parameter s to determine if the point lies on the ray
-            if (s < 0 || s > that.length) {
-                return false;
-            }
-            
-            if (!out_point) {
-                return lib.createPoint(that.point.x + s*cos(that.theta), 
-                                       that.point.y + s*sin(that.theta));
-            }
-            
-            out_point.x = that.point.x + s*cos(that.theta);
-            out_point.y = that.point.y + s*sin(thatthat.theta);
-        };
-    
-        return that;
-    };
-    
     lib.createLine = function (point, theta) {
         var that = {};
         
-        that.point = point;
+        that.p0 = point;
         that.theta = lib.boundAngle(theta);
         
         that.lineIntersection = function (line, out_point) {
             var s = lib.getParameterOfIntersection(
-                that.point.x, that.point.y, that.theta,
-                line.point.x, line.point.y, line.theta
+                that.p0.x, that.p0.y, that.theta,
+                line.p0.x, line.p0.y, line.theta
             );
             
             if (false === s) {
@@ -205,17 +167,17 @@ var GLib = function () {
             }
             
             if (!out_point) {
-                return lib.createPoint(line.point.x + s*cos(line.theta), 
-                                       line.point.y + s*sin(line.theta));
+                return lib.createPoint(line.p0.x + s*cos(line.theta), 
+                                       line.p0.y + s*sin(line.theta));
             }
             
-            out_point.x = line.point.x + s*cos(line.theta);
-            out_point.y = line.point.y + s*sin(line.theta);
+            out_point.x = line.p0.x + s*cos(line.theta);
+            out_point.y = line.p0.y + s*sin(line.theta);
         };
         
         that.lineSegIntersection = function (lineSeg, out_point) {
             var s = lib.getParameterOfIntersection(
-                that.point.x, that.point.y, that.theta,
+                that.p0.x, that.p0.y, that.theta,
                 lineSeg.p0.x, lineSeg.p0.y, lineSeg.theta
             );
             
@@ -253,7 +215,7 @@ var GLib = function () {
         
         that.closestIntersectionDistance = function (lineSeg) {
             var line = lib.createLine(that.center, lineSeg.theta + PI/2), 
-                intersection;
+                s, intersection, dist, r, a, b;
             
             var containsP1 = that.containsPoint(lineSeg.p0),
                 containsP2 = that.containsPoint(lineSeg.p1);
@@ -263,44 +225,42 @@ var GLib = function () {
                 return false;
             }
             
-            // if either endpoints are inside (but not both), the segment must intersect
-            if (containsP1 || containsP2) {
-                return true;
+            s = lib.getParameterOfIntersection(
+                line.p0.x, line.p0.y, line.theta,
+                lineSeg.p0.x, lineSeg.p0.y, lineSeg.theta
+            );
+            
+            // if the intersection doesn't occur or if it occurs in the 
+            //  opposite direction, return false
+            if (false === s || s < 0) {
+                return false;
             }
             
-            intersection = line.lineSegIntersection(lineSeg);
-
-            if (intersection && that.containsPoint(intersection)) {
-                return GLib.euclidDist(intersection, lineSeg.p0);
+            intersection = lib.createPoint(
+                lineSeg.p0.x + s*cos(lineSeg.theta),
+                lineSeg.p0.y + s*sin(lineSeg.theta)
+            );
+            
+            // if the intersection occured inside the circle, check the real 
+            //  intersection on the circle's perimeter
+            if (that.containsPoint(intersection)) {
+                r = that.radius;
+                a = GLib.euclidDist(intersection, that.center);
+                b = Math.sqrt(r*r - a*a);
+                dist = GLib.euclidDist(intersection, lineSeg.p0) - b;
+                
+                if (dist <= lineSeg.length) {
+                    return dist;
+                } else {
+                    return false;
+                }
             }
 
             return false;
         };
 
         that.intersectsLineSeg = function (lineSeg) {
-            var line = lib.createLine(that.center, lineSeg.theta + PI/2), 
-                intersection;
-            
-            var containsP1 = that.containsPoint(lineSeg.p0),
-                containsP2 = that.containsPoint(lineSeg.p1);
-                                  
-            // if both endpoints are inside, the segment cannot intersect
-            if (containsP1 && containsP2) {
-                return false;
-            }
-            
-            // if either endpoints are inside (but not both), the segment must intersect
-            if (containsP1 || containsP2) {
-                return true;
-            }
-            
-            intersection = line.lineSegIntersection(lineSeg);
-
-            if (intersection) {
-                return that.containsPoint(intersection);
-            }
-
-            return false;
+            return false !== that.closestIntersectionDistance(lineSeg);
         };
         
         that.intersectsCircle = function (circle) {
