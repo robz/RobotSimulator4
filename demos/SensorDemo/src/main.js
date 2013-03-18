@@ -45,6 +45,7 @@
             world: world, 
             length: .7,  
             scale: scale,
+            ghostify: true,
 
             frame: GLib.createPolygon([
                 GLib.createPoint(0, -scale/2),

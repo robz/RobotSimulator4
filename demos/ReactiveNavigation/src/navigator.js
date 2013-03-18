@@ -5,14 +5,17 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
 
         CLOSE_ENOUGH_TO_GOAL = 20,
         MIN_CLEARANCE = 70,
-        MIN_EDGE_CLEARANCE = 100,
+        MIN_EDGE_CLEARANCE = 140,
         CLOSE_ENOUGH_TO_MAX = 1,
-        MAX_POWER = .05,
+        MAX_POWER = .01,
+        MAX_ANGULAR = .05,
+        MAX_LINEAR = .1,
+        ANGLE_THREASHOlD = .2,
         
         WEIGHTS = {
-            CUR_HEADING: 0,
-            GOAL_HEADING: 1,
-            CLEARANCE: 0
+            CUR_HEADING: .01,
+            GOAL_HEADING: .9,
+            CLEARANCE: .09
         },
 
         goal = GLib.createPoint(0, 0),
@@ -24,6 +27,7 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
         goalIndex = -1,
         turningAround = false, 
         oppositeAngle = null,
+        turningDir = 0, // 1 means turning left, 2 means right
 
         createDirection = function (heading, clearance) {
             return {
@@ -147,7 +151,8 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
             // find the closest index matching goalHeading
             goalIndex = Math.floor(goalHeading/(Math.PI/distanceSensors.length));
 
-            if (Math.abs(maxDist - distanceSensors[goalIndex].read()) > CLOSE_ENOUGH_TO_MAX) {
+            if (Math.abs(maxDist - distanceSensors[goalIndex].read()) 
+                    > CLOSE_ENOUGH_TO_MAX) {
                 if (distToGoal < distanceSensors[goalIndex].read()) {
                     return MIN_CLEARANCE;
                 } else {
@@ -156,12 +161,15 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
             }
             
             // find left & right most indexes
-            for (i = 0; goalIndex + i < distanceSensors.length && goalIndex - i >= 0; i++) {
+            for (i = 0; goalIndex + i < distanceSensors.length 
+                        && goalIndex - i >= 0; i++) {
                 right = goalIndex + i;
                 left = goalIndex - i;
                 
-                if (Math.abs(maxDist - distanceSensors[right].read()) > CLOSE_ENOUGH_TO_MAX
-                 || Math.abs(maxDist - distanceSensors[left].read()) > CLOSE_ENOUGH_TO_MAX) {
+                if (Math.abs(maxDist - distanceSensors[right].read()) 
+                        > CLOSE_ENOUGH_TO_MAX
+                 || Math.abs(maxDist - distanceSensors[left].read()) 
+                        > CLOSE_ENOUGH_TO_MAX) {
                     break;
                 }
             }
@@ -215,10 +223,21 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
 
         followHeading = function (heading, curHeading) {
             var error = GLib.angleDif(heading, curHeading)/(Math.PI/2);
-                left = Math.max(MAX_POWER, MAX_POWER + 2*MAX_POWER*error),
-                right = Math.max(MAX_POWER, MAX_POWER - 2*MAX_POWER*error);
+                angular = MAX_ANGULAR*error,
+                linear = MAX_LINEAR*(1 - Math.abs(error)),
+                left = (linear + angular)/2,
+                right = (linear - angular)/2;
+                //left = Math.max(MAX_POWER, MAX_POWER + 2*MAX_POWER*error),
+                //right = Math.max(MAX_POWER, MAX_POWER - 2*MAX_POWER*error);
             
             motors.setMotorPowers(right, left);
+        },
+
+        drawLine = function (context, angle, dist) {
+            context.beginPath();
+            context.moveTo(0, 0);
+            context.lineTo(dist*Math.cos(angle), dist*Math.sin(angle));
+            context.stroke();
         };
         
     prgm.draw = function (context) {
@@ -235,10 +254,7 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
             angle = distanceSensors[gapIndexes[i]].node.offset.heading;
             dist = distanceSensors[gapIndexes[i]].read();
                     
-            context.beginPath();
-            context.moveTo(0, 0);
-            context.lineTo(dist*Math.cos(angle), dist*Math.sin(angle));
-            context.stroke();
+            drawLine(context, angle, dist);
         }
     
         if (dirs.length > 0) {
@@ -251,41 +267,42 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
             for (i = 0; i < dirs.length; i++) {
                 angle = dirs[i].heading;
                 
-                context.beginPath();
-                context.moveTo(0, 0);
-                context.lineTo(maxDist*Math.cos(angle), 
-                               maxDist*Math.sin(angle));
-                context.stroke();
+                drawLine(context, angle, maxDist);
             };
             
             context.restore();
         }
         
-        if (goalIndex != -1) {
+        if (-1 !== goalIndex) {
             context.lineWidth = 1;
             context.strokeStyle = "red";
         
             angle = distanceSensors[goalIndex].node.offset.heading;
             dist = distanceSensors[goalIndex].read();
                     
-            context.beginPath();
-            context.moveTo(0, 0);
-            context.lineTo(dist*Math.cos(angle), dist*Math.sin(angle));
-            context.stroke();
+            drawLine(context, angle, dist);
         }   
         
-        if (null != bestHeading) {
+        if (null !== bestHeading) {
             context.save();
             context.rotate(-compass.read());
             
             context.lineWidth = 4;
             context.strokeStyle = "orange";
-                    
-            context.beginPath();
-            context.moveTo(0, 0);
-            context.lineTo(maxDist*Math.cos(bestHeading), 
-                           maxDist*Math.sin(bestHeading));
-            context.stroke();
+            
+            drawLine(context, bestHeading, maxDist);
+            
+            context.restore();
+        }
+        
+        if (null !== oppositeAngle) {
+            context.save();
+            context.rotate(-compass.read());
+            
+            context.lineWidth = 4;
+            context.strokeStyle = "darkGray";
+            
+            drawLine(context, oppositeAngle, maxDist);
             
             context.restore();
         }
@@ -304,6 +321,11 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
         }
     }
  
+    prgm.getGoal = function (out_goal) {
+        out_goal.x = goal.x;
+        out_goal.y = goal.y;
+    };
+    
     prgm.setGoal = function (newGoal) {
         goal.x = newGoal.x;
         goal.y = newGoal.y;
@@ -329,18 +351,10 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
         curHeading = compass.read();
         pos = GPS.read();
         
-        // if we encountered a dead end, keep turning
-        if (turningAround) {
-            if (Math.abs(curHeading - oppositeAngle) < 2*Math.PI/20) {
-                turningAround = false;
-            } else {    
-                motors.setMotorPowers(-MAX_POWER, MAX_POWER);
-                return;
-            }
-        }
-        
-        // UGH -- this is a hack that would be fixed if frametree provided 
-        //  inverse transforms
+        // UGH -- this is a hack that would not be needed if frametree 
+        //  provided inverse transforms. It translates our position, given by 
+        //  the GPS, to the location of lidar sensor. Offsets are hardcoded for
+        //  simplicity.
         pos = GLib.createPoint(
             pos.x - 7*Math.cos(curHeading + Math.PI/2) 
                   + 40*Math.cos(curHeading),
@@ -380,22 +394,48 @@ var createNavigator = function (motors, distanceSensors, GPS, compass) {
             dirs.push(createDirection(goalHeading, goalClearance));
         } 
         
-        // if there are no options, start turning around
-        if (dirs.length === 0) {
-            motors.setMotorPowers(0, 0);
+        // if there are no options, turn around until there are
+        if (turningAround && dirs.length === 0) {
+            console.log(turningDir);
+        
+            if (Math.abs(curHeading - oppositeAngle) < ANGLE_THREASHOlD) {
+                console.log("setting to false!");
+                turningAround = false;
+                turningDir = 0;
+            } else if (1 === turningDir) {    
+                motors.setMotorPowers(-MAX_POWER, MAX_POWER);
+            } else if (2 === turningDir) {    
+                motors.setMotorPowers(MAX_POWER, -MAX_POWER);
+            }
+            
+            return;
+        } else if (dirs.length === 0) {
             turningAround = true;
-            oppositeAngle = GLib.boundAngle(curHeading + Math.PI/2);
+            
+            var coin = Math.random();
+            console.log(coin);
+            if (coin < .5) {
+                oppositeAngle = GLib.boundAngle(curHeading - ANGLE_THREASHOlD);
+                turningDir = 1;
+                motors.setMotorPowers(-MAX_POWER, MAX_POWER);
+            } else  if (coin >= .5) {
+                oppositeAngle = GLib.boundAngle(curHeading + ANGLE_THREASHOlD);
+                turningDir = 2;
+                motors.setMotorPowers(MAX_POWER, -MAX_POWER);
+            }
+            
             return;
         }
+        
+        turningAround = false;
+        oppositeAngle = null;
 
         // evaluate all directions based on current heading, goal direction, 
         //  and clearance, then pick the best heading
         bestHeading = findBestHeading(dirs, curHeading, goalHeading);
         
-        // set motors to follow the best heading, if one exists
-        if (bestHeading) {
-            followHeading(bestHeading, curHeading);
-        }
+        // set motors to follow the best heading
+        followHeading(bestHeading, curHeading);
     };
     
     prgm.node = FTLib.createNode(

@@ -102,6 +102,10 @@ var SensorFactory = function () {
             
             // find closest intersection with all obstacles
             latestRead = my.world.getClosestIntersectionDistance(lineSeg);
+            
+            if (Math.abs(latestRead - range) > 1e-3) {
+                latestRead = Math.max(0, latestRead - 20);
+            }
         };
         
         that.read = function () {
@@ -196,7 +200,7 @@ var SensorFactory = function () {
 
         that.update = function () {
             var pose = my.getPose();
-
+            
             latestRead = pose.heading;
         };
 

@@ -1,5 +1,6 @@
 (function () {
-    var ANIMATION_FPS = 40, 
+    var ANIMATION_FPS = 50, 
+        CLOSE_ENOUGH_TO_GOAL = 100,
         canvas = document.getElementById("canvas"),
         context = canvas.getContext("2d"),
         buffer,
@@ -11,7 +12,7 @@
         scale = 60,
 
         distanceSensors = (function () {
-            var i, list = [], N = 50;
+            var i, list = [], N = 20;
             
             for (i = 0; i < N; i++) {
                 list.push(SensorFactory.createDistanceSensor({
@@ -67,17 +68,53 @@
             GPS, 
             compass
         ),
+        
+        updateStuff = function () {
+            robot.step(300);
+            navigator.iterate();
+            
+            setTimeout(updateStuff, 1);
+        },
 
         drawStuff = function () {
             context.putImageData(buffer, 0, 0);
 
             //world.draw(context);
-            robot.update();
-            navigator.iterate();
             robot.draw(context);
             navigator.draw2(context);
+            
+            // console.log(robot.hitCounter);
 
             setTimeout(drawStuff, 1000/ANIMATION_FPS);
+        },
+        
+        curGoal,
+        
+        createGoals = function () {
+            var x, y, distToGoal,
+                radius = 120;
+                
+            if (curGoal) {
+                navigator.getGoal(curGoal);
+                distToGoal = GLib.euclidDist(curGoal, robot.getPose());
+            }
+
+            if (!curGoal || CLOSE_ENOUGH_TO_GOAL > distToGoal) {
+                var newGoal = GLib.createPoint(null, null);
+            
+                do {
+                    newGoal.x = Math.random()*canvas.width;
+                    newGoal.y = Math.random()*canvas.height;
+                } while (
+                    !world.isCircleAllowed(
+                        GLib.createCircle(newGoal, 120)
+                    ));
+                
+                navigator.setGoal(newGoal);
+                curGoal = newGoal;
+            }
+            
+            setTimeout(createGoals, 100);
         };
     
     // add the navigator program's node to the robot so that
@@ -93,9 +130,10 @@
         0, canvas.height - 5, canvas.width, 5
     ));
     
-    // generate barrels
+    // generate random barrels
+    
     (function () {
-        var N = 8, radius = 30, rw = 150 + radius, rh = 100 + radius, 
+        var N = 100, radius = 30, rw = 150 + radius, rh = 100 + radius, 
             rx = robot.getPose().x, ry = robot.getPose().y,
             i, x, y;
 
@@ -103,8 +141,11 @@
             do {
                 x = Math.random()*canvas.width;
                 y = Math.random()*canvas.height;
-            } while (x > rx - rw/2 && x < rx + rw/2 && 
-                     y > ry - rh/2 && y < ry + rh/2);
+            } while ((x > rx - rw/2 && x < rx + rw/2 && 
+                      y > ry - rh/2 && y < ry + rh/2)  
+            || !world.isCircleAllowed(GLib.createCircle(
+                    GLib.createPoint(x, y), radius
+            )));
             
             world.addObstacle(GLib.createCircle(
                 GLib.createPoint(x, y), 
@@ -112,16 +153,35 @@
             ));
         }
     })();
+    /*
+    (function () {
+        var radius = 30;
+    
+        world.addObstacle(GLib.createCircle(
+            GLib.createPoint(1670, 580), 
+            radius
+        ));
+        world.addObstacle(GLib.createCircle(
+            GLib.createPoint(1700, 640), 
+            radius
+        ));
+        world.addObstacle(GLib.createCircle(
+            GLib.createPoint(1700, 700), 
+            radius
+        ));
+        world.addObstacle(GLib.createCircle(
+            GLib.createPoint(1700, 760), 
+            radius
+        ));
+        world.addObstacle(GLib.createCircle(
+            GLib.createPoint(1670, 820), 
+            radius
+        ));
+    })();
+    */
     
     world.draw(context);  
     buffer = context.getImageData(0, 0, canvas.width, canvas.height);
-    
-    robot.update();
-    navigator.setGoal(GLib.createPoint(canvas.width*2/3, canvas.height/2));
-    
-    document.onkeydown = function (event) {
-        robot.keyControl(event.which);
-    };
     
     document.getElementById("canvas").onmousedown = function (event) {
         var mouseX, mouseY, clickedPos;
@@ -140,8 +200,12 @@
         clickedPos = GLib.createPoint(mouseX, mouseY);
         navigator.setGoal(clickedPos);
     };
+    
+    navigator.setGoal(GLib.createPoint(2600, 700));
 
     window.onload = function () {
+        updateStuff();
         drawStuff();
+        createGoals();
     };
 })();

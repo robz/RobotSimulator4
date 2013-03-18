@@ -272,7 +272,7 @@ var RobotFactory = function () {
         };
         
         my.root = FTLib.createNode(
-            (ghostify) ? null : my.frame, 
+            my.frame, 
             function (context) {
                 context.save();
                 
@@ -286,7 +286,7 @@ var RobotFactory = function () {
             my, 
             [
                 FTLib.createNode(
-                    (ghostify) ? null : my.wheel, 
+                    my.wheel, 
                     function (context) {
                         my.drawWheel(
                             context, 
@@ -296,7 +296,7 @@ var RobotFactory = function () {
                     my.wheelInfo.poses[0]
                 ),
                 FTLib.createNode(
-                    (ghostify) ? null : my.wheel, 
+                    my.wheel, 
                     function (context) {
                         my.drawWheel(
                             context, 
@@ -306,7 +306,7 @@ var RobotFactory = function () {
                     my.wheelInfo.poses[1]
                 ),
                 FTLib.createNode(
-                    (ghostify) ? null : casterShape, 
+                    casterShape, 
                     casterShape.draw, 
                     caster
                 ) 
@@ -344,6 +344,8 @@ var RobotFactory = function () {
         };
 
         // public members
+        
+        that.hitCounter = 0;
 
         that.addNode = function (node) {
             my.root.children.push(node);
@@ -389,18 +391,26 @@ var RobotFactory = function () {
             my.wheelInfo.distanceTravelled[0] += dt*rightVel;
             my.wheelInfo.distanceTravelled[1] += dt*leftVel;
 
-            if (my.world && !my.isPosePossible(new_x, new_y, new_heading)) {
-                return;
-            }
-          
+            var hitSomething = my.world && !my.isPosePossible(new_x, new_y, 
+                new_heading);
             
-            for (i = 0; i < my.sensors.length; i++) {
-                my.sensors[i].update();
+            if (hitSomething) {
+                that.hitCounter++;
             }
+            
+            if (!ghostify && hitSomething) {
+                return;
+            } 
+            
+            FTLib.setTransforms(my.root);
 
             my.x = new_x;
             my.y = new_y;
             my.heading = new_heading;
+          
+            for (i = 0; i < my.sensors.length; i++) {
+                my.sensors[i].update();
+            }
         };
 
         that.draw = function (context) {

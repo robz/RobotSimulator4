@@ -6,10 +6,12 @@ var createWorld = function () {
         badShape;
     
     return function (spec) {
-        var that = {};
+        var that = {},
         
-        that.bounds = null || spec.bounds;
-        that.obstacles = [] || spec.obstacles;
+            drawBadShape = spec.drawBadShape || false;
+        
+        that.bounds = spec.bounds || null;
+        that.obstacles = spec.obstacles || [];
         
         // shape could be poly or circle
         that.addObstacle = function (shape) {
@@ -92,7 +94,7 @@ var createWorld = function () {
                 context.fill();
             }
             
-            if (badShape) {
+            if (drawBadShape && badShape) {
                 context.lineWidth = 1;
                 context.strokeStyle = "red";
                 badShape.draw(context);
