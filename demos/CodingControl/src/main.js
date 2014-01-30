@@ -7,17 +7,22 @@
         context = canvas.getContext("2d"),
         buffer = context.getImageData(0, 0, canvas.width, canvas.height),
         
+        world = createWorld({
+            bounds: [0, 0, canvas.width, canvas.height]
+        }),
+        
         robot = RobotFactory.createTankRobot({
             x: canvas.width / 2,
             y: canvas.height - canvas.height / 8,
             heading: Math.PI * 3 / 2,
+            world: world,
             scale: 40,
             color: "green"
         }),
     
         robotAPIs = createRobotAPIs(robot),
         
-        program = { iteration: function () {} },
+        program = function () {},
         
         readProgram = function () {
             var programString = document.getElementById("textarea").value;
@@ -25,14 +30,13 @@
             programString = "'use strict';\n\n" + programString + "\n\nprogram";
             program = eval(programString);
         },
-        
+
         drawStuff = function () {
             context.putImageData(buffer, 0, 0);
             
-            program.iteration(robotAPIs);
             robot.update();
             robot.draw(context);
-
+            
             setTimeout(drawStuff, 1000 / ANIMATION_FPS);
         };
 
@@ -47,4 +51,7 @@
     makeTabsWork("textarea");
 
     drawStuff();
+    setInterval(function () { 
+        program(robotAPIs); 
+    }, 100);
 }());
