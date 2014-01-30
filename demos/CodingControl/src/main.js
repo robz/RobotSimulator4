@@ -7,6 +7,8 @@
         context = canvas.getContext("2d"),
         buffer = context.getImageData(0, 0, canvas.width, canvas.height),
         
+        codeMirror = CodeMirror.fromTextArea(document.getElementById("code_textarea")),
+        
         world = createWorld({
             bounds: [0, 0, canvas.width, canvas.height]
         }),
@@ -26,7 +28,7 @@
         
         readProgram = function () {
             // get the text that the user has typed
-            var programString = document.getElementById("code_textarea").value;
+            var programString = codeMirror.getValue();
             
             // store it locally so that it's persistent between page refereshes
             localStorage.setItem("robotProgram", programString);
@@ -73,13 +75,11 @@
     };
 
     if (localStorage.getItem("robotProgram")) {
-        document.getElementById("code_textarea").value = localStorage.getItem("robotProgram");
+        codeMirror.setValue(localStorage.getItem("robotProgram"));
     }
 
-    var codeMirror = CodeMirror.fromTextArea(document.getElementById("code_textarea"));
     codeMirror.getScrollerElement().style.height = canvas.height - 50;
 
-    makeTabsWork("code_textarea"); // from textarea_tabs.js
 
     drawStuff();
     
