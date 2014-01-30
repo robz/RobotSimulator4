@@ -1,0 +1,61 @@
+<html>
+<head>
+<style>
+#center_type {
+    padding: 0px 250px 0px 210px;
+}
+canvas {
+    background: lightGray;
+    float: left;
+}
+#textarea {
+    width: 400px;
+    height: 450px;
+}
+#gobutton {
+    width: 400px;
+    height: 50px;
+}
+body {
+    text-align: center;
+    max-width: 800px;
+    font-family: Helvetica, sans-serif;
+    margin: 0 auto;
+}
+</style>
+</head>
+<body>
+    <h2>Coding Control</h2>
+    <p>Make it drive straight!</p>
+	<canvas width=300 height=500 id="canvas">your browser does not support canvas!</canvas>
+    <div id="codearea">
+        <textarea id="textarea">/*
+robotAPIs = {
+    void setLeftMotor(number [-1, 1]);
+    void setRightMotor(number [-1, 1]);
+    number getLeftEncoder(void);
+    number getRightEncoder(void);
+}
+*/
+
+var program = (function () {
+    var that = {};
+
+    that.iteration = function (robotAPIs) {
+        robotAPIs.setLeftMotor(1);
+        robotAPIs.setRightMotor(0);
+    };
+
+    return that;
+}());</textarea>
+        <button id="gobutton">read in program</button>
+    </div>
+    <script src="../../external/sylvester.js"></script>
+    <script src="../../shared/frametree.js"></script>
+    <script src="../../shared/geometry.js"></script>
+    <script src="../../shared/robot.js"></script>
+    <script src="src/robot_api.js"></script>
+    <script src="src/textarea_tabs.js"></script>
+    <script src="src/main.js"></script>
+</body>
+</html>
