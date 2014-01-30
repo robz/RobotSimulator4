@@ -71,11 +71,14 @@
         
         program = function () {};
     };
-    
+
     if (localStorage.getItem("robotProgram")) {
         document.getElementById("code_textarea").value = localStorage.getItem("robotProgram");
     }
-    
+
+    var codeMirror = CodeMirror.fromTextArea(document.getElementById("code_textarea"));
+    codeMirror.getScrollerElement().style.height = canvas.height - 50;
+
     makeTabsWork("code_textarea"); // from textarea_tabs.js
 
     drawStuff();
