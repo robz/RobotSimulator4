@@ -388,6 +388,10 @@ var RobotFactory = (function () {
                 my.rightWheelVel = rightWheelVel;
             }
         };
+        
+        that.getWheelDistances = function () {
+            return my.wheelInfo.distanceTravelled;
+        };
 
         that.step = function (dt) {
             var new_x, new_y, new_heading, R, wd,
