@@ -27,18 +27,24 @@ canvas {
 }
 
 #gobutton {
-    width: 325px;
+    width: 210px;
     height: 50px;
 }
 
 #resetbutton {
-    width: 325px;
+    width: 210px;
+    height: 50px;
+}
+    
+#pausebutton {
+    width: 210px;
     height: 50px;
 }
 
 body {
     text-align: center;
     max-width: 1000px;
+    min-width: 1000px;
     margin: 0 auto;
 }
 </style>
@@ -60,7 +66,7 @@ Log function:
     void log(string);
 */
 
-// the code here is executed once when the flash & go button is pressed
+// the code here is executed once when the program button is pressed
 var count = 0;
 
 // this function will be called 10 times per second
@@ -73,10 +79,11 @@ function controlIteration(robot, log) {
     	+ ", " + robot.getRightEncoder());
  
   	count += 1;
-};</textarea>
+}</textarea>
         </div>
-        <button id="gobutton">flash & go!</button>
+        <button id="gobutton">program</button>
         <button id="resetbutton">reset</button>
+        <button id="pausebutton">pause</button>
     </div>
     <textarea id="log_textarea"></textarea>
     <script src="../../external/sylvester.js"></script>

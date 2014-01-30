@@ -7,7 +7,12 @@ var createRobotAPIs = function (robot, spec) {
         rightMotorSpeed = (spec && spec.rightMotorSpeed) || 0,
         
         leftMotorScale = null,
-        rightMotorScale = null;
+        rightMotorScale = null,
+        
+        gauss = function (stdev, mean) {
+            var normal = (Math.random() * 2 - 1) + (Math.random() * 2 - 1) + (Math.random() * 2 - 1);
+            return normal * stdev + mean;
+        };
     
     do {
         leftMotorScale = Math.random() * 0.5 + 0.5;
@@ -21,14 +26,14 @@ var createRobotAPIs = function (robot, spec) {
         setLeftMotor: function (power) {
             if (power === undefined) { return; }
             power *= 0.2;
-            leftMotorSpeed = power * leftMotorScale;
+            leftMotorSpeed = power * gauss(0.05, leftMotorScale);
             robot.setWheelVelocities(rightMotorSpeed, leftMotorSpeed);
         },
 
         setRightMotor: function (power) {
             if (power === undefined) { return; }
             power *= 0.2;
-            rightMotorSpeed = power * rightMotorScale;
+            rightMotorSpeed = power * gauss(0.05, rightMotorScale);
             robot.setWheelVelocities(rightMotorSpeed, leftMotorSpeed);
         },
 

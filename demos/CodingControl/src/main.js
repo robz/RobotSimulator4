@@ -24,6 +24,7 @@
     
         robotAPIs = createRobotAPIs(robot),
         
+        isPaused = false,
         controlIteration = function () {},
         
         readProgram = function () {
@@ -47,9 +48,11 @@
         },
 
         drawStuff = function () {
-            context.putImageData(buffer, 0, 0);
+            if (!isPaused) {
+                robot.update();
+            }
             
-            robot.update();
+            context.putImageData(buffer, 0, 0);
             robot.draw(context);
             
             setTimeout(drawStuff, 1000 / ANIMATION_FPS);
@@ -71,7 +74,17 @@
     
         robotAPIs = createRobotAPIs(robot);
         
-        program = function () {};
+        controlIteration = function () {};
+    };
+    
+    document.getElementById("pausebutton").onclick = function () {
+        if (isPaused) {
+            document.getElementById("pausebutton").innerHTML = "pause";
+        } else {
+            document.getElementById("pausebutton").innerHTML = "unpause";
+        }
+        
+        isPaused = !isPaused;
     };
 
     if (localStorage.getItem("robotProgram")) {
@@ -79,12 +92,13 @@
     }
 
     codeMirror.getScrollerElement().style.height = canvas.height - 50;
-
-
-    drawStuff();
     
     // "loop" over the user's provided controlIteration function (noops if flash hasn't been pressed)
     setInterval(function () {
-        controlIteration(robotAPIs, log);
+        if (!isPaused) {
+            controlIteration(robotAPIs, log);
+        }
     }, 100);
+
+    drawStuff();
 }());
