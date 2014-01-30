@@ -60,13 +60,20 @@ Log function:
     void log(string);
 */
 
-// this function will be called 10 times a second
+// the code here is executed once when the flash & go button is pressed
+var count = 0;
+
+// this function will be called 10 times per second
 function controlIteration(robot, log) {
     robot.setLeftMotor(1.0);
     robot.setRightMotor(1.0);
-    log(robot.getLeftEncoder() + ", " + robot.getRightEncoder());
-};
-</textarea>
+
+  	log(count 
+        + ": " + robot.getLeftEncoder() 
+    	+ ", " + robot.getRightEncoder());
+ 
+  	count += 1;
+};</textarea>
         </div>
         <button id="gobutton">flash & go!</button>
         <button id="resetbutton">reset</button>
