@@ -22,13 +22,26 @@
     
         robotAPIs = createRobotAPIs(robot),
         
-        program = function () {},
+        controlIteration = function () {},
         
         readProgram = function () {
-            var programString = document.getElementById("textarea").value;
+            // get the text that the user has typed
+            var programString = document.getElementById("code_textarea").value;
+            
+            // store it locally so that it's persistent between page refereshes
             localStorage.setItem("robotProgram", programString);
-            programString = "'use strict';\n\n" + programString + "\n\nprogram";
-            program = eval(programString);
+            
+            // strict-ify the user's code so that it is executed in its own scope
+            programString = "'use strict';\n\n" + programString + "\n\ncontrolIteration";
+            
+            // obtain a reference to the controlIteration function that the user wrote
+            controlIteration = eval(programString);
+        },
+        
+        log = function (obj) {
+            var textarea = document.getElementById("log_textarea");
+            textarea.value += obj + "\n";
+            textarea.scrollTop = textarea.scrollHeight;
         },
 
         drawStuff = function () {
@@ -44,14 +57,31 @@
         readProgram();
     };
     
+    document.getElementById("resetbutton").onclick = function () {
+        robot = RobotFactory.createTankRobot({
+            x: canvas.width / 2,
+            y: canvas.height - canvas.height / 8,
+            heading: Math.PI * 3 / 2,
+            world: world,
+            scale: 40,
+            color: "green"
+        });
+    
+        robotAPIs = createRobotAPIs(robot);
+        
+        program = function () {};
+    };
+    
     if (localStorage.getItem("robotProgram")) {
-        document.getElementById("textarea").value = localStorage.getItem("robotProgram");
+        document.getElementById("code_textarea").value = localStorage.getItem("robotProgram");
     }
     
-    makeTabsWork("textarea");
+    makeTabsWork("code_textarea"); // from textarea_tabs.js
 
     drawStuff();
-    setInterval(function () { 
-        program(robotAPIs); 
+    
+    // "loop" over the user's provided controlIteration function (noops if flash hasn't been pressed)
+    setInterval(function () {
+        controlIteration(robotAPIs, log);
     }, 100);
 }());
