@@ -1,6 +1,4 @@
-var GLib = GLib || {},
-    FTLib = FTLib || {},
-    console = console || {};
+/*global GLib, FTLib, console */
 
 var RobotFactory = (function () {
     "use strict";

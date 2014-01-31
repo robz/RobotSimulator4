@@ -1,54 +1,16 @@
 <html>
 <head>
-<style>
-canvas {
-    background: lightGray;
-}
-    
-#codearea {
-    float: right;
-}
-    
-#code_textarea {
-    width: 650px;
-    height: 440px;
-    margin-left: 10px;
-}
-    
-#code_div {
-    background: lightGray;
-    text-align: left;
-}
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../../external/codemirror-2.35/codemirror.css">
 
-#log_textarea {
-    margin-top: 10px;
-    width: 900px;
-    height: 100px;
-}
-
-#gobutton {
-    width: 210px;
-    height: 50px;
-}
-
-#resetbutton {
-    width: 210px;
-    height: 50px;
-}
-    
-#pausebutton {
-    width: 210px;
-    height: 50px;
-}
-
-body {
-    text-align: center;
-    max-width: 1000px;
-    min-width: 1000px;
-    margin: 0 auto;
-}
-</style>
-<link rel="stylesheet" type="text/css" href="../../external/codemirror-2.35/codemirror.css">
+<script src="../../external/codemirror-2.35/codemirror.js"></script>
+<script src="../../external/codemirror-2.35/javascript.js"></script>
+<script src="../../external/sylvester.js"></script>
+<script src="../../shared/frametree.js"></script>
+<script src="../../shared/geometry.js"></script>
+<script src="../../shared/world.js"></script>
+<script src="../../shared/robot.js"></script>
+<script src="src/robot_api.js"></script>
 </head>
 <body>
     <h2>Make the damn thing drive straight!</h2>
@@ -86,15 +48,7 @@ function controlIteration(robot, log) {
         <button id="pausebutton">pause</button>
     </div>
     <textarea id="log_textarea"></textarea>
-    <script src="../../external/sylvester.js"></script>
-    <script type="text/javascript" src="../../external/codemirror-2.35/codemirror.js"></script>
-    <script type="text/javascript" src="../../external/codemirror-2.35/javascript.js"></script>
-    <script src="../../shared/frametree.js"></script>
-    <script src="../../shared/geometry.js"></script>
-    <script src="../../shared/world.js"></script>
-    <script src="../../shared/robot.js"></script>
-    <script src="src/robot_api.js"></script>
-    <script src="src/textarea_tabs.js"></script>
+
     <script src="src/main.js"></script>
 </body>
 </html>

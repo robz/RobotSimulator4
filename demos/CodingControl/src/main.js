@@ -1,3 +1,6 @@
+/*jslint browser: true */
+/*global CodeMirror, createWorld, RobotFactory, createRobotAPIs */
+
 (function () {
     "use strict";
     
@@ -7,11 +10,41 @@
         context = canvas.getContext("2d"),
         buffer = context.getImageData(0, 0, canvas.width, canvas.height),
         
-        codeMirror = CodeMirror.fromTextArea(document.getElementById("code_textarea")),
+        codeTextarea = CodeMirror.fromTextArea(document.getElementById("code_textarea")),
+        logTextarea = document.getElementById("log_textarea"),
+        programBtn = document.getElementById("gobutton"),
+        resetBtn = document.getElementById("resetbutton"),
+        pauseBtn = document.getElementById("pausebutton"),
         
         world = createWorld({
             bounds: [0, 0, canvas.width, canvas.height]
         }),
+        
+        gametimer = (function () {
+            var time = new Date().getTime(),
+                time_before_pause = 0,
+                isPaused = false;
+            
+            return {
+                getTime: function () {
+                    if (isPaused) {
+                        return time_before_pause;
+                    }
+                    
+                    return new Date().getTime() - time + time_before_pause;
+                },
+                
+                pause: function () {
+                    time_before_pause += new Date().getTime() - time;
+                    isPaused = true;
+                },
+                
+                unpause: function () {
+                    time = new Date().getTime();
+                    isPaused = false;
+                }
+            };
+        }()),
         
         robot = RobotFactory.createTankRobot({
             x: canvas.width / 2,
@@ -19,7 +52,8 @@
             heading: Math.PI * 3 / 2,
             world: world,
             scale: 40,
-            color: "green"
+            color: "green",
+            getTime: gametimer.getTime
         }),
     
         robotAPIs = createRobotAPIs(robot),
@@ -29,7 +63,7 @@
         
         readProgram = function () {
             // get the text that the user has typed
-            var programString = codeMirror.getValue();
+            var programString = codeTextarea.getValue();
             
             // store it locally so that it's persistent between page refereshes
             localStorage.setItem("robotProgram", programString);
@@ -42,7 +76,7 @@
         },
         
         log = function (obj) {
-            var textarea = document.getElementById("log_textarea");
+            var textarea = logTextarea;
             textarea.value += obj + "\n";
             textarea.scrollTop = textarea.scrollHeight;
         },
@@ -58,18 +92,19 @@
             setTimeout(drawStuff, 1000 / ANIMATION_FPS);
         };
 
-    document.getElementById("gobutton").onclick = function () {
+    programBtn.onclick = function () {
         readProgram();
     };
     
-    document.getElementById("resetbutton").onclick = function () {
+    resetBtn.onclick = function () {
         robot = RobotFactory.createTankRobot({
             x: canvas.width / 2,
             y: canvas.height - canvas.height / 8,
             heading: Math.PI * 3 / 2,
             world: world,
             scale: 40,
-            color: "green"
+            color: "green",
+            getTime: gametimer.getTime
         });
     
         robotAPIs = createRobotAPIs(robot);
@@ -77,21 +112,23 @@
         controlIteration = function () {};
     };
     
-    document.getElementById("pausebutton").onclick = function () {
+    pauseBtn.onclick = function () {
         if (isPaused) {
-            document.getElementById("pausebutton").innerHTML = "pause";
+            pauseBtn.innerHTML = "pause";
+            gametimer.unpause();
         } else {
-            document.getElementById("pausebutton").innerHTML = "unpause";
+            pauseBtn.innerHTML = "unpause";
+            gametimer.pause();
         }
         
         isPaused = !isPaused;
     };
 
     if (localStorage.getItem("robotProgram")) {
-        codeMirror.setValue(localStorage.getItem("robotProgram"));
+        codeTextarea.setValue(localStorage.getItem("robotProgram"));
     }
 
-    codeMirror.getScrollerElement().style.height = canvas.height - 50;
+    codeTextarea.getScrollerElement().style.height = canvas.height - 50;
     
     // "loop" over the user's provided controlIteration function (noops if flash hasn't been pressed)
     setInterval(function () {
