@@ -1,5 +1,5 @@
 /*jslint browser: true */
-/*global CodeMirror, createWorld, RobotFactory, createRobotAPIs */
+/*global CodeMirror, createWorld, RobotFactory, createRobotAPIs, Worker */
 
 (function () {
     "use strict";
@@ -59,7 +59,8 @@
         robotAPIs = createRobotAPIs(robot),
         
         isPaused = false,
-        controlIteration = function () {},
+            
+        worker = new Worker("src/worker.js"),
         
         readProgram = function () {
             // get the text that the user has typed
@@ -68,11 +69,7 @@
             // store it locally so that it's persistent between page refereshes
             localStorage.setItem("robotProgram", programString);
             
-            // strict-ify the user's code so that it is executed in its own scope
-            programString = "'use strict';\n\n" + programString + "\n\ncontrolIteration";
-            
-            // obtain a reference to the controlIteration function that the user wrote
-            controlIteration = eval(programString);
+            worker.postMessage({id: "readProgram", arg: programString});
         },
         
         log = function (obj) {
@@ -109,7 +106,7 @@
     
         robotAPIs = createRobotAPIs(robot);
         
-        controlIteration = function () {};
+        worker.postMessage({id: "readProgram", arg: "function controlIteration() {}"});
     };
     
     pauseBtn.onclick = function () {
@@ -130,12 +127,30 @@
 
     codeTextarea.getScrollerElement().style.height = canvas.height - 50;
     
+    worker.onmessage = function (e) {
+        if (robotAPIs[e.data.id]) {
+			robotAPIs[e.data.id](e.data.arg);
+        } else if (e.data.id === "log") {
+            log(e.data.arg);
+        }
+    };
+    
+    worker.onerror = function (e) {
+        // TODO: print error to console
+    };
+    
     // "loop" over the user's provided controlIteration function (noops if flash hasn't been pressed)
     setInterval(function () {
-        if (!isPaused) {
-            controlIteration(robotAPIs, log);
-        }
+        if (isPaused) { return; }
+        
+        worker.postMessage({
+            id: "iterate",
+            arg: {
+                leftEncoder: robotAPIs.getLeftEncoder(),
+                rightEncoder: robotAPIs.getRightEncoder()
+            }
+        });
     }, 100);
-
+    
     drawStuff();
 }());
