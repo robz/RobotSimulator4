@@ -2,6 +2,9 @@ var handlers = (function () {
 	var that = {},
         
        	robotAPIs = {
+            leftEncoder: null,
+            rightEncoder: null,
+            
         	setLeftMotor: function (power) {
 				postMessage({
                 	id: "setLeftMotor",
@@ -17,11 +20,11 @@ var handlers = (function () {
             },
             
             getLeftEncoder: function () {
-				return leftEncoder;
+				return this.leftEncoder;
             },
 
             getRightEncoder: function (power) {
-				return rightEncoder;
+				return this.rightEncoder;
             }
         },
         
@@ -35,7 +38,7 @@ var handlers = (function () {
         controlIteration = function () {};
     
     that.readProgram = function (programString) {
-        // strict-ify the user's code so that it is executed in its own scope
+        // strict-ify the user's code so that it doesn't create globals
         programString = "'use strict';\n\n" + programString + "\n\ncontrolIteration";
         
         // obtain a reference to the controlIteration function that the user wrote
@@ -43,8 +46,8 @@ var handlers = (function () {
 	};
     
     that.iterate = function (robotData) {
-        leftEncoder = robotData.leftEncoder;
-        rightEncoder = robotData.rightEncoder;
+        robotAPIs.leftEncoder = robotData.leftEncoder;
+        robotAPIs.rightEncoder = robotData.rightEncoder;
         controlIteration(robotAPIs, log);
     };
     

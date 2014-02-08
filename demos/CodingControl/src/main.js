@@ -1,25 +1,27 @@
 /*jslint browser: true */
-/*global CodeMirror, createWorld, RobotFactory, createRobotAPIs, Worker */
+/*global CodeMirror, createWorld, RobotFactory, createRobotAPIs, Worker, requestAnimationFrame */
 
 (function () {
     "use strict";
     
-    var ANIMATION_FPS = 40,
-
-        canvas = document.getElementById("canvas"),
+    var canvas = document.getElementById("canvas"),
         context = canvas.getContext("2d"),
         buffer = context.getImageData(0, 0, canvas.width, canvas.height),
-        
-        codeTextarea = CodeMirror.fromTextArea(document.getElementById("code_textarea")),
+
+        codeTextarea = CodeMirror.fromTextArea(
+            document.getElementById("code_textarea"),
+            { lineNumbers: true }
+        ),
         logTextarea = document.getElementById("log_textarea"),
+        errorTextarea = document.getElementById("error_textarea"),
         programBtn = document.getElementById("gobutton"),
         resetBtn = document.getElementById("resetbutton"),
         pauseBtn = document.getElementById("pausebutton"),
-        
+
         world = createWorld({
             bounds: [0, 0, canvas.width, canvas.height]
         }),
-        
+
         gametimer = (function () {
             var time = new Date().getTime(),
                 time_before_pause = 0,
@@ -45,7 +47,7 @@
                 }
             };
         }()),
-        
+
         robot = RobotFactory.createTankRobot({
             x: canvas.width / 2,
             y: canvas.height - canvas.height / 8,
@@ -55,11 +57,17 @@
             color: "green",
             getTime: gametimer.getTime
         }),
-    
+
+        isPaused = false,
+
         robotAPIs = createRobotAPIs(robot),
         
-        isPaused = false,
-            
+        log = function (obj) {
+            var textarea = logTextarea;
+            textarea.value += obj + "\n";
+            textarea.scrollTop = textarea.scrollHeight;
+        },
+
         worker = new Worker("src/worker.js"),
         
         readProgram = function () {
@@ -71,26 +79,28 @@
             
             worker.postMessage({id: "readProgram", arg: programString});
         },
-        
-        log = function (obj) {
-            var textarea = logTextarea;
-            textarea.value += obj + "\n";
-            textarea.scrollTop = textarea.scrollHeight;
-        },
 
         drawStuff = function () {
             if (!isPaused) {
                 robot.update();
             }
-            
+
             context.putImageData(buffer, 0, 0);
             robot.draw(context);
             
-            setTimeout(drawStuff, 1000 / ANIMATION_FPS);
+            requestAnimationFrame(drawStuff);
         };
 
+    // set the height of the code mirror, and compensate for the button heights (I couldn't figure out how to do this with CSS)
+    codeTextarea.getScrollerElement().style.height = canvas.height - 50;
+    codeTextarea.lineNumbers = true;
+    
+    //
+    // setup button click behavior
+    //
     programBtn.onclick = function () {
         readProgram();
+        errorTextarea.value = "";
     };
     
     resetBtn.onclick = function () {
@@ -107,6 +117,7 @@
         robotAPIs = createRobotAPIs(robot);
         
         worker.postMessage({id: "readProgram", arg: "function controlIteration() {}"});
+        errorTextarea.value = "";
     };
     
     pauseBtn.onclick = function () {
@@ -121,12 +132,14 @@
         isPaused = !isPaused;
     };
 
+    // use the last saved program, if it exists
     if (localStorage.getItem("robotProgram")) {
         codeTextarea.setValue(localStorage.getItem("robotProgram"));
     }
-
-    codeTextarea.getScrollerElement().style.height = canvas.height - 50;
     
+    //
+    // set up webworker handler
+    //
     worker.onmessage = function (e) {
         if (robotAPIs[e.data.id]) {
 			robotAPIs[e.data.id](e.data.arg);
@@ -137,9 +150,21 @@
     
     worker.onerror = function (e) {
         // TODO: print error to console
+        var errorMessage = "line " + (e.lineno - 2) + ": " + e.message;
+        errorTextarea.value += errorMessage + "\n";
+        errorTextarea.scrollTop = errorTextarea.scrollHeight;
     };
     
-    // "loop" over the user's provided controlIteration function (noops if flash hasn't been pressed)
+    //
+    // set up canvas background
+    //
+    context.fillStyle = "green";
+    context.beginPath();
+    context.arc(canvas.width / 2, 0, 20, 0, Math.PI * 2, false);
+    context.fill();
+    buffer = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    // "loop" over the user's iteration function (noops if program hasn't been pressed)
     setInterval(function () {
         if (isPaused) { return; }
         
@@ -152,5 +177,5 @@
         });
     }, 100);
     
-    drawStuff();
+    requestAnimationFrame(drawStuff);
 }());

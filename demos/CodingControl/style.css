@@ -9,23 +9,30 @@ canvas {
 }
 
 button {
+    margin-top: 10px;
     width: 200px;
     height: 50px;
 }
-    
+
 #codearea {
-    width: 650px;
-    height: 440px;
+    width: 630px;
     float: right;
 }
-    
+
 #code_div {
-    background: lightGray;
     text-align: left;
 }
 
 #log_textarea {
     margin-top: 10px;
-    width: 900px;
+    width: 400px;
     height: 100px;
+    resize: none;
+}
+
+#error_textarea {
+    margin-top: 10px;
+    width: 550px;
+    height: 100px;
+    resize: none;
 }

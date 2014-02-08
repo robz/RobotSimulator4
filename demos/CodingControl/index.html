@@ -23,7 +23,7 @@ Methods in robot:
     void setRightMotor(number on range [-1.0, 1.0]);
     number getLeftEncoder(void);
     number getRightEncoder(void);
-            
+
 Log function:
     void log(string);
 */
@@ -47,7 +47,8 @@ function controlIteration(robot, log) {
         <button id="resetbutton">reset</button>
         <button id="pausebutton">pause</button>
     </div>
-    <textarea id="log_textarea"></textarea>
+    <textarea id="log_textarea" readonly></textarea>
+    <textarea id="error_textarea" readonly></textarea>
 
     <script src="src/main.js"></script>
 </body>
